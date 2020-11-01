@@ -1,0 +1,1345 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+    <meta name="generator" content="Jekyll v4.1.1">
+    <title>Zeek connections</title>
+
+    <!-- Bootstrap core CSS -->
+<link href="https://getbootstrap.com/docs/4.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+
+    <!-- Favicons -->
+<link rel="icon" href="/static/img/favicons/favicon.ico" sizes="16x16" type="image/png">
+<meta name="theme-color" content="#563d7c">
+
+
+    <style>
+      .bd-placeholder-img {
+        font-size: 1.125rem;
+        text-anchor: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+
+      @media (min-width: 768px) {
+        .bd-placeholder-img-lg {
+          font-size: 3.5rem;
+        }
+      }
+
+      html, body {
+          font: 16pt arial;
+      }
+      #viz {
+          height: 900px;
+          border: 1px solid lightgray;
+          font: 22pt arial;
+      }
+      .logo-image img {
+        width: 16.4375rem;
+        height: 2rem;
+      }
+    </style>
+    <link rel="stylesheet" href="/static/plugins/selectize/css/selectize.default.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.13.0/css/all.css" integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg" crossorigin="anonymous">
+
+    <!-- Custom styles for this template -->
+    <link href="https://getbootstrap.com/docs/4.5/examples/product/product.css" rel="stylesheet">
+
+    <script type="text/javascript">
+        // define config car
+        // instantiate nodevis object
+        // draw
+        var viz;
+        function draw() {
+            var config = {
+                container_id: "viz",
+                server_url: "bolt://localhost:7687",
+                server_user: "neo4j",
+                server_password: "admin",
+                labels: {
+                    "IP": {
+                        "caption": "id_resp_h",
+                        "size": 3,
+                        "community": "community",
+                        "title_properties": [
+                            "name",
+                            "id_resp_h",
+                            "id_resp_p",
+                            "id_orig_h",
+                            "id_orig_p",
+                            "qv_country",
+                            "qv_zk_datetime"
+                        ],
+                        "font": {
+                            "size":26,
+                            "color":"black"
+                        },
+                        image: '/static/img/ip.png'
+                    },
+                    "COUNTRY": {
+                        "caption": "qv_country",
+                        "size": 3,
+                        "community": "community",
+                        "font": {
+                            "size":46,
+                            "color":"blue"
+                        },
+                        image: '/static/img/globe.png'
+                    }
+                },
+                relationships: {
+                    "CONNECTED_TO": {
+                        "thickness": "connections",
+                        "caption": false
+                    }
+                },
+                initial_cypher: "MATCH (x)-[y:CONNECTED_TO]->(z) RETURN *",
+                arrows: true
+            };
+            viz = new NeoVis.default(config);
+            viz.render();
+            console.log(viz);
+        }
+    </script>
+  </head>
+  <body onload="draw()">
+    <nav class="site-header sticky-top py-1">
+  <div style="width:80%" class="d-flex flex-column flex-md-row justify-content-between">
+
+    <a class="py-2 navbar-brand logo-image" href="index.html"><img src="https://user-images.strikinglycdn.com/res/hrscywv4p/image/upload/244879/459522_878566.png" alt="alternative"></a>
+
+    <a class="py-2 d-none d-md-inline-block" href="#">Home</a>
+    <a class="py-2 d-none d-md-inline-block" href="#">Product</a>
+    <a class="py-2 d-none d-md-inline-block" href="#">Features</a>
+    <a class="py-2 d-none d-md-inline-block" href="#">Enterprise</a>
+    <a class="py-2 d-none d-md-inline-block" href="#">Support</a>
+    <a class="py-2 d-none d-md-inline-block" href="#">Pricing</a>
+    <a class="py-2 d-none d-md-inline-block" href="#">Cart</a>
+  </div>
+</nav>
+
+<div class="container-fluid" style="background-image: url('/static/img/bg.jpg');">
+  <h1 style="text-align:center">Neo4j Visualizer with Real-time Zeek data</h1>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <div id="viz"></div>
+      <!-- Cypher query: <textarea rows="4" cols=50 id="cypher"></textarea><br>
+      <input type="submit" value="Submit" id="reload">
+      <input type="submit" value="Stabilize" id="stabilize"> -->
+    </div>
+    <div class="col-lg-4">
+      <div class="card w-100">
+        <div class="card-body">
+          <div class="row">
+              <div class="col-lg-4"></div>
+              <div class="col-lg-4">
+                <button id="graphRefresh" type="button" class="btn btn-primary">Refresh Graph</button>
+              </div>
+              <div class="col-lg-4">
+                <button id="graphReset" type="button" class="btn btn-secondary">Reset Graph</button>
+              </div>
+          </div>
+          <div class="row">
+            <div class="col-lg-12">
+              <strong>Country List</strong>
+              <select id="country" placeholder="Select the country..."></select>
+              <small class="form-text text-muted">Country will be filtered based on response ip address parameter(id_resp_h).</small>
+            </div>
+          </div>
+          </br>
+          <div class="row">
+            <div class="col-lg-12">
+              <div class="form-group">
+                <strong>Date and Time range</strong> </br>
+                <input type="text" name="daterange" class="w-100" />
+                <small class="form-text text-muted">Date time will be filtered based on zeek date time parameter(qv_zk_datetime).</small>
+              </div>
+            </div>
+          </div>
+          </br>
+          <div class="row">
+            <div class="col-lg-12">
+              <strong>Zeek Alert Messages (Based on record count)</strong></br>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="bUdpChksm" value="bad_UDP_checksum">
+                <label class="form-check-label" for="inlineCheckbox1">bad_UDP_checksum</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="atvConReuse" value="active_connection_reuse">
+                <label class="form-check-label" for="inlineCheckbox2">active_connection_reuse</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="sslAppData" value="ssl_early_application_data">
+                <label class="form-check-label" for="inlineCheckbox2">ssl_early_application_data</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="tTcpPayload" value="truncated_tcp_payload">
+                <label class="form-check-label" for="inlineCheckbox2">truncated_tcp_payload</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="abvHoleDataAck" value="above_hole_data_without_any_acks">
+                <label class="form-check-label" for="inlineCheckbox2">above_hole_data_without_any_acks</label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+      <script src="https://code.jquery.com/jquery-3.3.1.min.js" ></script>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+      <script type="text/javascript" src="https://rawgit.com/neo4j-contrib/neovis.js/master/dist/neovis.js"></script>
+      <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+
+      <!-- Include Date Range Picker -->
+      <script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
+      <script src="/static/plugins/selectize/js/selectize.min.js"></script>
+
+      <script>
+          let vizData = {};
+          $("#reload").click(function() {
+              var cypher = $("#cypher").val();
+              if (cypher.length > 3) {
+                  viz.renderWithCypher(cypher);
+              } else {
+                  console.log("reload");
+                  viz.reload();
+              }
+          });
+          $("#stabilize").click(function() {
+              viz.stabilize();
+          });
+
+          $("#graphRefresh").click(function() {
+            viz.reload();
+          });
+
+          $("#graphReset").click(function() {
+            let cypher= `MATCH (x)-[y:CONNECTED_TO]->(z) RETURN *`;
+            viz.renderWithCypher(cypher);
+          });
+
+          $('input[type="checkbox"]').change(function() {
+              vizData['name']= this.value;
+              if(this.checked){
+                // let cypher= `MATCH (x)-[y:CONNECTED_TO]->(z) WHERE z.name = '${this.value}' RETURN *`;
+                // viz.renderWithCypher(cypher);
+                applyCypher(vizData);
+              }
+          });
+
+           $('input[name="daterange"]').daterangepicker({
+               timePicker: true,
+               timePicker24Hour: true,
+               autoApply: true,
+               timePickerIncrement: 30,
+               opens: "left",
+               startDate: moment().startOf('hour'),
+               endDate: moment().startOf('hour').add(32, 'hour'),
+               applyButtonClasses: "btn btn-primary",
+              cancelClass: "btn btn-secondary",
+               locale: {
+                   format: 'MM/DD/YYYY h:mm A'
+               }
+           });
+
+           $('input[name="daterange"]').on('apply.daterangepicker', function(ev, picker) {
+               let zkDateTime= {
+                 startDate: picker.startDate,
+                 endDate: picker.endDate
+               };
+               vizData['zkDateTime']= zkDateTime;
+               applyCypher(vizData);
+               // let cypher= `MATCH (x)-[y:CONNECTED_TO]->(z) WHERE z.qv_zk_datetime = datetime({ year: ${parseInt(picker.startDate.format('YYYY'))}, month: ${parseInt(picker.startDate.format('MM'))}, day: ${parseInt(picker.startDate.format('DD'))}, hour:${parseInt(picker.startDate.format('HH'))}, minute: ${parseInt(picker.startDate.format('mm'))} }) or
+               // z.qv_zk_datetime > datetime({ year: ${parseInt(picker.startDate.format('YYYY'))}, month: ${parseInt(picker.startDate.format('MM'))}, day: ${parseInt(picker.startDate.format('DD'))}, hour:${parseInt(picker.startDate.format('HH'))}, minute: ${parseInt(picker.startDate.format('mm'))} }) and
+               // z.qv_zk_datetime < datetime({ year: ${parseInt(picker.endDate.format('YYYY'))}, month: ${parseInt(picker.endDate.format('MM'))}, day: ${parseInt(picker.endDate.format('DD'))}, hour:${parseInt(picker.endDate.format('HH'))}, minute: ${parseInt(picker.endDate.format('mm'))} }) RETURN *`;
+               // viz.renderWithCypher(cypher);
+               // $(this).val(picker.startDate.format('MM/DD/YYYY') + ' - ' + picker.endDate.format('MM/DD/YYYY'));
+           });
+
+      $('#country').selectize({
+          plugins: ['remove_button'],
+          persist: false,
+          maxItems: null,
+          valueField: 'value',
+          labelField: 'name',
+          searchField: ['name'],
+          options: [
+            {
+              "value": "A2",
+              "name": "Satellite Provider"
+            },
+            {
+              "value": "O1",
+              "name": "Other Country"
+            },
+            {
+              "value": "AD",
+              "name": "Andorra"
+            },
+            {
+              "value": "AE",
+              "name": "United Arab Emirates"
+            },
+            {
+              "value": "AF",
+              "name": "Afghanistan"
+            },
+            {
+              "value": "AG",
+              "name": "Antigua and Barbuda"
+            },
+            {
+              "value": "AI",
+              "name": "Anguilla"
+            },
+            {
+              "value": "AL",
+              "name": "Albania"
+            },
+            {
+              "value": "AM",
+              "name": "Armenia"
+            },
+            {
+              "value": "AO",
+              "name": "Angola"
+            },
+            {
+              "value": "AP",
+              "name": "Asia/Pacific Region"
+            },
+            {
+              "value": "AQ",
+              "name": "Antarctica"
+            },
+            {
+              "value": "AR",
+              "name": "Argentina"
+            },
+            {
+              "value": "AS",
+              "name": "American Samoa"
+            },
+            {
+              "value": "AT",
+              "name": "Austria"
+            },
+            {
+              "value": "AU",
+              "name": "Australia"
+            },
+            {
+              "value": "AW",
+              "name": "Aruba"
+            },
+            {
+              "value": "AX",
+              "name": "Aland Islands"
+            },
+            {
+              "value": "AZ",
+              "name": "Azerbaijan"
+            },
+            {
+              "value": "BA",
+              "name": "Bosnia and Herzegovina"
+            },
+            {
+              "value": "BB",
+              "name": "Barbados"
+            },
+            {
+              "value": "BD",
+              "name": "Bangladesh"
+            },
+            {
+              "value": "BE",
+              "name": "Belgium"
+            },
+            {
+              "value": "BF",
+              "name": "Burkina Faso"
+            },
+            {
+              "value": "BG",
+              "name": "Bulgaria"
+            },
+            {
+              "value": "BH",
+              "name": "Bahrain"
+            },
+            {
+              "value": "BI",
+              "name": "Burundi"
+            },
+            {
+              "value": "BJ",
+              "name": "Benin"
+            },
+            {
+              "value": "BL",
+              "name": "Saint Barthelemey"
+            },
+            {
+              "value": "BM",
+              "name": "Bermuda"
+            },
+            {
+              "value": "BN",
+              "name": "Brunei Darussalam"
+            },
+            {
+              "value": "BO",
+              "name": "Bolivia"
+            },
+            {
+              "value": "BQ",
+              "name": "Bonaire, Saint Eustatius and Saba"
+            },
+            {
+              "value": "BR",
+              "name": "Brazil"
+            },
+            {
+              "value": "BS",
+              "name": "Bahamas"
+            },
+            {
+              "value": "BT",
+              "name": "Bhutan"
+            },
+            {
+              "value": "BV",
+              "name": "Bouvet Island"
+            },
+            {
+              "value": "BW",
+              "name": "Botswana"
+            },
+            {
+              "value": "BY",
+              "name": "Belarus"
+            },
+            {
+              "value": "BZ",
+              "name": "Belize"
+            },
+            {
+              "value": "CA",
+              "name": "Canada"
+            },
+            {
+              "value": "CC",
+              "name": "Cocos (Keeling) Islands"
+            },
+            {
+              "value": "CD",
+              "name": "Congo, The Democratic Republic of the"
+            },
+            {
+              "value": "CF",
+              "name": "Central African Republic"
+            },
+            {
+              "value": "CG",
+              "name": "Congo"
+            },
+            {
+              "value": "CH",
+              "name": "Switzerland"
+            },
+            {
+              "value": "CI",
+              "name": "Cote d'Ivoire"
+            },
+            {
+              "value": "CK",
+              "name": "Cook Islands"
+            },
+            {
+              "value": "CL",
+              "name": "Chile"
+            },
+            {
+              "value": "CM",
+              "name": "Cameroon"
+            },
+            {
+              "value": "CN",
+              "name": "China"
+            },
+            {
+              "value": "CO",
+              "name": "Colombia"
+            },
+            {
+              "value": "CR",
+              "name": "Costa Rica"
+            },
+            {
+              "value": "CU",
+              "name": "Cuba"
+            },
+            {
+              "value": "CV",
+              "name": "Cape Verde"
+            },
+            {
+              "value": "CW",
+              "name": "Curacao"
+            },
+            {
+              "value": "CX",
+              "name": "Christmas Island"
+            },
+            {
+              "value": "CY",
+              "name": "Cyprus"
+            },
+            {
+              "value": "CZ",
+              "name": "Czech Republic"
+            },
+            {
+              "value": "DE",
+              "name": "Germany"
+            },
+            {
+              "value": "DJ",
+              "name": "Djibouti"
+            },
+            {
+              "value": "DK",
+              "name": "Denmark"
+            },
+            {
+              "value": "DM",
+              "name": "Dominica"
+            },
+            {
+              "value": "DO",
+              "name": "Dominican Republic"
+            },
+            {
+              "value": "DZ",
+              "name": "Algeria"
+            },
+            {
+              "value": "EC",
+              "name": "Ecuador"
+            },
+            {
+              "value": "EE",
+              "name": "Estonia"
+            },
+            {
+              "value": "EG",
+              "name": "Egypt"
+            },
+            {
+              "value": "EH",
+              "name": "Western Sahara"
+            },
+            {
+              "value": "ER",
+              "name": "Eritrea"
+            },
+            {
+              "value": "ES",
+              "name": "Spain"
+            },
+            {
+              "value": "ET",
+              "name": "Ethiopia"
+            },
+            {
+              "value": "EU",
+              "name": "Europe"
+            },
+            {
+              "value": "FI",
+              "name": "Finland"
+            },
+            {
+              "value": "FJ",
+              "name": "Fiji"
+            },
+            {
+              "value": "FK",
+              "name": "Falkland Islands (Malvinas)"
+            },
+            {
+              "value": "FM",
+              "name": "Micronesia, Federated States of"
+            },
+            {
+              "value": "FO",
+              "name": "Faroe Islands"
+            },
+            {
+              "value": "FR",
+              "name": "France"
+            },
+            {
+              "value": "GA",
+              "name": "Gabon"
+            },
+            {
+              "value": "GB",
+              "name": "United Kingdom"
+            },
+            {
+              "value": "GD",
+              "name": "Grenada"
+            },
+            {
+              "value": "GE",
+              "name": "Georgia"
+            },
+            {
+              "value": "GF",
+              "name": "French Guiana"
+            },
+            {
+              "value": "GG",
+              "name": "Guernsey"
+            },
+            {
+              "value": "GH",
+              "name": "Ghana"
+            },
+            {
+              "value": "GI",
+              "name": "Gibraltar"
+            },
+            {
+              "value": "GL",
+              "name": "Greenland"
+            },
+            {
+              "value": "GM",
+              "name": "Gambia"
+            },
+            {
+              "value": "GN",
+              "name": "Guinea"
+            },
+            {
+              "value": "GP",
+              "name": "Guadeloupe"
+            },
+            {
+              "value": "GQ",
+              "name": "Equatorial Guinea"
+            },
+            {
+              "value": "GR",
+              "name": "Greece"
+            },
+            {
+              "value": "GS",
+              "name": "South Georgia and the South Sandwich Islands"
+            },
+            {
+              "value": "GT",
+              "name": "Guatemala"
+            },
+            {
+              "value": "GU",
+              "name": "Guam"
+            },
+            {
+              "value": "GW",
+              "name": "Guinea-Bissau"
+            },
+            {
+              "value": "GY",
+              "name": "Guyana"
+            },
+            {
+              "value": "HK",
+              "name": "Hong Kong"
+            },
+            {
+              "value": "HM",
+              "name": "Heard Island and McDonald Islands"
+            },
+            {
+              "value": "HN",
+              "name": "Honduras"
+            },
+            {
+              "value": "HR",
+              "name": "Croatia"
+            },
+            {
+              "value": "HT",
+              "name": "Haiti"
+            },
+            {
+              "value": "HU",
+              "name": "Hungary"
+            },
+            {
+              "value": "ID",
+              "name": "Indonesia"
+            },
+            {
+              "value": "IE",
+              "name": "Ireland"
+            },
+            {
+              "value": "IL",
+              "name": "Israel"
+            },
+            {
+              "value": "IM",
+              "name": "Isle of Man"
+            },
+            {
+              "value": "IN",
+              "name": "India"
+            },
+            {
+              "value": "IO",
+              "name": "British Indian Ocean Territory"
+            },
+            {
+              "value": "IQ",
+              "name": "Iraq"
+            },
+            {
+              "value": "IR",
+              "name": "Iran, Islamic Republic of"
+            },
+            {
+              "value": "IS",
+              "name": "Iceland"
+            },
+            {
+              "value": "IT",
+              "name": "Italy"
+            },
+            {
+              "value": "JE",
+              "name": "Jersey"
+            },
+            {
+              "value": "JM",
+              "name": "Jamaica"
+            },
+            {
+              "value": "JO",
+              "name": "Jordan"
+            },
+            {
+              "value": "JP",
+              "name": "Japan"
+            },
+            {
+              "value": "KE",
+              "name": "Kenya"
+            },
+            {
+              "value": "KG",
+              "name": "Kyrgyzstan"
+            },
+            {
+              "value": "KH",
+              "name": "Cambodia"
+            },
+            {
+              "value": "KI",
+              "name": "Kiribati"
+            },
+            {
+              "value": "KM",
+              "name": "Comoros"
+            },
+            {
+              "value": "KN",
+              "name": "Saint Kitts and Nevis"
+            },
+            {
+              "value": "KP",
+              "name": "Korea, Democratic People's Republic of"
+            },
+            {
+              "value": "KR",
+              "name": "Korea, Republic of"
+            },
+            {
+              "value": "KW",
+              "name": "Kuwait"
+            },
+            {
+              "value": "KY",
+              "name": "Cayman Islands"
+            },
+            {
+              "value": "KZ",
+              "name": "Kazakhstan"
+            },
+            {
+              "value": "LA",
+              "name": "Lao People's Democratic Republic"
+            },
+            {
+              "value": "LB",
+              "name": "Lebanon"
+            },
+            {
+              "value": "LC",
+              "name": "Saint Lucia"
+            },
+            {
+              "value": "LI",
+              "name": "Liechtenstein"
+            },
+            {
+              "value": "LK",
+              "name": "Sri Lanka"
+            },
+            {
+              "value": "LR",
+              "name": "Liberia"
+            },
+            {
+              "value": "LS",
+              "name": "Lesotho"
+            },
+            {
+              "value": "LT",
+              "name": "Lithuania"
+            },
+            {
+              "value": "LU",
+              "name": "Luxembourg"
+            },
+            {
+              "value": "LV",
+              "name": "Latvia"
+            },
+            {
+              "value": "LY",
+              "name": "Libyan Arab Jamahiriya"
+            },
+            {
+              "value": "MA",
+              "name": "Morocco"
+            },
+            {
+              "value": "MC",
+              "name": "Monaco"
+            },
+            {
+              "value": "MD",
+              "name": "Moldova, Republic of"
+            },
+            {
+              "value": "ME",
+              "name": "Montenegro"
+            },
+            {
+              "value": "MF",
+              "name": "Saint Martin"
+            },
+            {
+              "value": "MG",
+              "name": "Madagascar"
+            },
+            {
+              "value": "MH",
+              "name": "Marshall Islands"
+            },
+            {
+              "value": "MK",
+              "name": "Macedonia"
+            },
+            {
+              "value": "ML",
+              "name": "Mali"
+            },
+            {
+              "value": "MM",
+              "name": "Myanmar"
+            },
+            {
+              "value": "MN",
+              "name": "Mongolia"
+            },
+            {
+              "value": "MO",
+              "name": "Macao"
+            },
+            {
+              "value": "MP",
+              "name": "Northern Mariana Islands"
+            },
+            {
+              "value": "MQ",
+              "name": "Martinique"
+            },
+            {
+              "value": "MR",
+              "name": "Mauritania"
+            },
+            {
+              "value": "MS",
+              "name": "Montserrat"
+            },
+            {
+              "value": "MT",
+              "name": "Malta"
+            },
+            {
+              "value": "MU",
+              "name": "Mauritius"
+            },
+            {
+              "value": "MV",
+              "name": "Maldives"
+            },
+            {
+              "value": "MW",
+              "name": "Malawi"
+            },
+            {
+              "value": "MX",
+              "name": "Mexico"
+            },
+            {
+              "value": "MY",
+              "name": "Malaysia"
+            },
+            {
+              "value": "MZ",
+              "name": "Mozambique"
+            },
+            {
+              "value": "NA",
+              "name": "Namibia"
+            },
+            {
+              "value": "NC",
+              "name": "New Caledonia"
+            },
+            {
+              "value": "NE",
+              "name": "Niger"
+            },
+            {
+              "value": "NF",
+              "name": "Norfolk Island"
+            },
+            {
+              "value": "NG",
+              "name": "Nigeria"
+            },
+            {
+              "value": "NI",
+              "name": "Nicaragua"
+            },
+            {
+              "value": "NL",
+              "name": "Netherlands"
+            },
+            {
+              "value": "NO",
+              "name": "Norway"
+            },
+            {
+              "value": "NP",
+              "name": "Nepal"
+            },
+            {
+              "value": "NR",
+              "name": "Nauru"
+            },
+            {
+              "value": "NU",
+              "name": "Niue"
+            },
+            {
+              "value": "NZ",
+              "name": "New Zealand"
+            },
+            {
+              "value": "OM",
+              "name": "Oman"
+            },
+            {
+              "value": "PA",
+              "name": "Panama"
+            },
+            {
+              "value": "PE",
+              "name": "Peru"
+            },
+            {
+              "value": "PF",
+              "name": "French Polynesia"
+            },
+            {
+              "value": "PG",
+              "name": "Papua New Guinea"
+            },
+            {
+              "value": "PH",
+              "name": "Philippines"
+            },
+            {
+              "value": "PK",
+              "name": "Pakistan"
+            },
+            {
+              "value": "PL",
+              "name": "Poland"
+            },
+            {
+              "value": "PM",
+              "name": "Saint Pierre and Miquelon"
+            },
+            {
+              "value": "PN",
+              "name": "Pitcairn"
+            },
+            {
+              "value": "PR",
+              "name": "Puerto Rico"
+            },
+            {
+              "value": "PS",
+              "name": "Palestinian Territory"
+            },
+            {
+              "value": "PT",
+              "name": "Portugal"
+            },
+            {
+              "value": "PW",
+              "name": "Palau"
+            },
+            {
+              "value": "PY",
+              "name": "Paraguay"
+            },
+            {
+              "value": "QA",
+              "name": "Qatar"
+            },
+            {
+              "value": "RE",
+              "name": "Reunion"
+            },
+            {
+              "value": "RO",
+              "name": "Romania"
+            },
+            {
+              "value": "RS",
+              "name": "Serbia"
+            },
+            {
+              "value": "RU",
+              "name": "Russian Federation"
+            },
+            {
+              "value": "RW",
+              "name": "Rwanda"
+            },
+            {
+              "value": "SA",
+              "name": "Saudi Arabia"
+            },
+            {
+              "value": "SB",
+              "name": "Solomon Islands"
+            },
+            {
+              "value": "SC",
+              "name": "Seychelles"
+            },
+            {
+              "value": "SD",
+              "name": "Sudan"
+            },
+            {
+              "value": "SE",
+              "name": "Sweden"
+            },
+            {
+              "value": "SG",
+              "name": "Singapore"
+            },
+            {
+              "value": "SH",
+              "name": "Saint Helena"
+            },
+            {
+              "value": "SI",
+              "name": "Slovenia"
+            },
+            {
+              "value": "SJ",
+              "name": "Svalbard and Jan Mayen"
+            },
+            {
+              "value": "SK",
+              "name": "Slovakia"
+            },
+            {
+              "value": "SL",
+              "name": "Sierra Leone"
+            },
+            {
+              "value": "SM",
+              "name": "San Marino"
+            },
+            {
+              "value": "SN",
+              "name": "Senegal"
+            },
+            {
+              "value": "SO",
+              "name": "Somalia"
+            },
+            {
+              "value": "SR",
+              "name": "Suriname"
+            },
+            {
+              "value": "SS",
+              "name": "South Sudan"
+            },
+            {
+              "value": "ST",
+              "name": "Sao Tome and Principe"
+            },
+            {
+              "value": "SV",
+              "name": "El Salvador"
+            },
+            {
+              "value": "SX",
+              "name": "Sint Maarten"
+            },
+            {
+              "value": "SY",
+              "name": "Syrian Arab Republic"
+            },
+            {
+              "value": "SZ",
+              "name": "Swaziland"
+            },
+            {
+              "value": "TC",
+              "name": "Turks and Caicos Islands"
+            },
+            {
+              "value": "TD",
+              "name": "Chad"
+            },
+            {
+              "value": "TF",
+              "name": "French Southern Territories"
+            },
+            {
+              "value": "TG",
+              "name": "Togo"
+            },
+            {
+              "value": "TH",
+              "name": "Thailand"
+            },
+            {
+              "value": "TJ",
+              "name": "Tajikistan"
+            },
+            {
+              "value": "TK",
+              "name": "Tokelau"
+            },
+            {
+              "value": "TL",
+              "name": "Timor-Leste"
+            },
+            {
+              "value": "TM",
+              "name": "Turkmenistan"
+            },
+            {
+              "value": "TN",
+              "name": "Tunisia"
+            },
+            {
+              "value": "TO",
+              "name": "Tonga"
+            },
+            {
+              "value": "TR",
+              "name": "Turkey"
+            },
+            {
+              "value": "TT",
+              "name": "Trinidad and Tobago"
+            },
+            {
+              "value": "TV",
+              "name": "Tuvalu"
+            },
+            {
+              "value": "TW",
+              "name": "Taiwan"
+            },
+            {
+              "value": "TZ",
+              "name": "Tanzania, United Republic of"
+            },
+            {
+              "value": "UA",
+              "name": "Ukraine"
+            },
+            {
+              "value": "UG",
+              "name": "Uganda"
+            },
+            {
+              "value": "UM",
+              "name": "United States Minor Outlying Islands"
+            },
+            {
+              "value": "US",
+              "name": "United States"
+            },
+            {
+              "value": "UY",
+              "name": "Uruguay"
+            },
+            {
+              "value": "UZ",
+              "name": "Uzbekistan"
+            },
+            {
+              "value": "VA",
+              "name": "Holy See (Vatican City State)"
+            },
+            {
+              "value": "VC",
+              "name": "Saint Vincent and the Grenadines"
+            },
+            {
+              "value": "VE",
+              "name": "Venezuela"
+            },
+            {
+              "value": "VG",
+              "name": "Virgin Islands, British"
+            },
+            {
+              "value": "VI",
+              "name": "Virgin Islands, U.S."
+            },
+            {
+              "value": "VN",
+              "name": "Vietnam"
+            },
+            {
+              "value": "VU",
+              "name": "Vanuatu"
+            },
+            {
+              "value": "WF",
+              "name": "Wallis and Futuna"
+            },
+            {
+              "value": "WS",
+              "name": "Samoa"
+            },
+            {
+              "value": "YE",
+              "name": "Yemen"
+            },
+            {
+              "value": "YT",
+              "name": "Mayotte"
+            },
+            {
+              "value": "ZA",
+              "name": "South Africa"
+            },
+            {
+              "value": "ZM",
+              "name": "Zambia"
+            },
+            {
+              "value": "ZW",
+              "name": "Zimbabwe"
+            }
+          ],
+          onChange: function(value) {
+              vizData['country']= value;
+              if(value.length>0){
+                // let cypher= `MATCH (x)-[y:CONNECTED_TO]->(z) WHERE x.qv_country IN ${JSON.stringify(value)} RETURN *`;
+                // viz.renderWithCypher(cypher);
+                applyCypher(vizData);
+              }
+              else{
+                let cypher= `MATCH (x)-[y:CONNECTED_TO]->(z) RETURN *`;
+                viz.renderWithCypher(cypher);
+              }
+          }
+      });
+
+      function applyCypher(vizData){
+        let cypherHead= `MATCH (x)-[y:CONNECTED_TO]->(z) WHERE `, cypherQuery= '', cypherAnd= false;
+        if(vizData['country']){
+          if(cypherAnd){
+            cypherQuery+= ` and `;
+          }
+          cypherQuery+= ` x.qv_country IN ${JSON.stringify(vizData['country'])} `;
+          cypherAnd= true;
+        }
+        if(vizData['zkDateTime']){
+          if(cypherAnd){
+            cypherQuery+= ` and `;
+          }
+          let startDate= vizData['zkDateTime']['startDate'], endDate= vizData['zkDateTime']['endDate'];
+          // cypherQuery+= ` z.name = '${vizData['name']}' `;
+          cypherQuery+= ` (z.qv_zk_datetime = datetime({ year: ${parseInt(startDate.format('YYYY'))}, month: ${parseInt(startDate.format('MM'))}, day: ${parseInt(startDate.format('DD'))}, hour:${parseInt(startDate.format('HH'))}, minute: ${parseInt(startDate.format('mm'))} }) or
+          z.qv_zk_datetime > datetime({ year: ${parseInt(startDate.format('YYYY'))}, month: ${parseInt(startDate.format('MM'))}, day: ${parseInt(startDate.format('DD'))}, hour:${parseInt(startDate.format('HH'))}, minute: ${parseInt(startDate.format('mm'))} }) and
+          z.qv_zk_datetime < datetime({ year: ${parseInt(endDate.format('YYYY'))}, month: ${parseInt(endDate.format('MM'))}, day: ${parseInt(endDate.format('DD'))}, hour:${parseInt(endDate.format('HH'))}, minute: ${parseInt(endDate.format('mm'))} })) `;
+          cypherAnd= true;
+        }
+        if(vizData['name']){
+          if(cypherAnd){
+            cypherQuery+= ` and `;
+          }
+          cypherQuery+= ` z.name = '${vizData['name']}' `;
+          cypherAnd= true;
+        }
+        cypherTail= ` RETURN *`;
+        let cypher= cypherHead+cypherQuery+cypherTail;
+        viz.renderWithCypher(cypher);
+      }
+      </script>
+
+
+    </body>
+</html>

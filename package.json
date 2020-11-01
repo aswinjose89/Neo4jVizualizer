@@ -1,0 +1,17 @@
+{
+  "name": "network_monitor",
+  "version": "1.0.0",
+  "description": "Intrusion detection system",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "aswin1906@gmail.com",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "ejs": "^3.1.5",
+    "express": "^4.17.1",
+    "neovis.js": "^1.5.0"
+  }
+}
